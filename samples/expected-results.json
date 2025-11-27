@@ -1,0 +1,215 @@
+[
+  {
+    "wordCount": 6,
+    "sentenceCount": 2,
+    "paragraphCount": 1,
+    "longestWord": "Hello",
+    "topNWords": [
+      {
+        "word": "hello",
+        "count": 1
+      },
+      {
+        "word": "world",
+        "count": 1
+      },
+      {
+        "word": "this",
+        "count": 1
+      },
+      {
+        "word": "is",
+        "count": 1
+      },
+      {
+        "word": "a",
+        "count": 1
+      }
+    ],
+    "uniqueWords": [
+      "a",
+      "hello",
+      "is",
+      "test",
+      "this",
+      "world"
+    ],
+    "mostFrequentWord": {
+      "word": "hello",
+      "count": 1
+    }
+  },
+  {
+    "wordCount": 17,
+    "sentenceCount": 4,
+    "paragraphCount": 2,
+    "longestWord": "paragraph",
+    "topNWords": [
+      {
+        "word": "paragraph",
+        "count": 2
+      },
+      {
+        "word": "it",
+        "count": 2
+      },
+      {
+        "word": "first",
+        "count": 1
+      },
+      {
+        "word": "with",
+        "count": 1
+      },
+      {
+        "word": "multiple",
+        "count": 1
+      }
+    ],
+    "uniqueWords": [
+      "continues",
+      "first",
+      "has",
+      "here",
+      "it",
+      "multiple",
+      "paragraph",
+      "second",
+      "sentences",
+      "several",
+      "starts",
+      "story",
+      "the",
+      "with",
+      "words"
+    ],
+    "mostFrequentWord": {
+      "word": "paragraph",
+      "count": 2
+    }
+  },
+  {
+    "wordCount": 32,
+    "sentenceCount": 5,
+    "paragraphCount": 3,
+    "longestWord": "hyphenated-words",
+    "topNWords": [
+      {
+        "word": "the",
+        "count": 4
+      },
+      {
+        "word": "quick",
+        "count": 2
+      },
+      {
+        "word": "brown",
+        "count": 2
+      },
+      {
+        "word": "fox",
+        "count": 2
+      },
+      {
+        "word": "over",
+        "count": 2
+      }
+    ],
+    "uniqueWords": [
+      "and",
+      "are",
+      "brown",
+      "cases",
+      "dog",
+      "everything",
+      "fox",
+      "hyphenated-words",
+      "important",
+      "indeed",
+      "it",
+      "jumped",
+      "jumps",
+      "lazy",
+      "over",
+      "punctuation",
+      "quick",
+      "special",
+      "the",
+      "very",
+      "was"
+    ],
+    "mostFrequentWord": {
+      "word": "the",
+      "count": 4
+    }
+  },
+  {
+    "wordCount": 0,
+    "sentenceCount": 0,
+    "paragraphCount": 0,
+    "longestWord": "",
+    "topNWords": [],
+    "uniqueWords": [],
+    "mostFrequentWord": null
+  },
+  {
+    "wordCount": 1,
+    "sentenceCount": 1,
+    "paragraphCount": 1,
+    "longestWord": "Test",
+    "topNWords": [
+      {
+        "word": "test",
+        "count": 1
+      }
+    ],
+    "uniqueWords": [
+      "test"
+    ],
+    "mostFrequentWord": {
+      "word": "test",
+      "count": 1
+    }
+  },
+  {
+    "wordCount": 13,
+    "sentenceCount": 4,
+    "paragraphCount": 1,
+    "longestWord": "JavaScript",
+    "topNWords": [
+      {
+        "word": "javascript",
+        "count": 5
+      },
+      {
+        "word": "is",
+        "count": 3
+      },
+      {
+        "word": "great",
+        "count": 1
+      },
+      {
+        "word": "powerful",
+        "count": 1
+      },
+      {
+        "word": "amazing",
+        "count": 1
+      }
+    ],
+    "uniqueWords": [
+      "amazing",
+      "developers",
+      "great",
+      "is",
+      "javascript",
+      "love",
+      "powerful"
+    ],
+    "mostFrequentWord": {
+      "word": "javascript",
+      "count": 5
+    }
+  }
+]

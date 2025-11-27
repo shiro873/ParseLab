@@ -1,0 +1,33 @@
+[
+  {
+    "id": "article-1",
+    "title": "Simple Article",
+    "content": "Hello world. This is a test."
+  },
+  {
+    "id": "article-2",
+    "title": "Multi-Paragraph Article",
+    "content": "First paragraph with multiple sentences. It has several words.\n\nSecond paragraph starts here. It continues the story."
+  },
+  {
+    "id": "article-3",
+    "title": "Complex Text Analysis",
+    "content": "The quick brown fox jumps over the lazy dog. The dog was very lazy indeed.\n\nThe fox was quick and brown. It jumped over everything.\n\nPunctuation, hyphenated-words, and special cases are important!"
+  },
+  {
+    "id": "article-4",
+    "title": "Empty Content",
+    "content": ""
+  },
+  {
+    "id": "article-5",
+    "title": "Single Word",
+    "content": "Test."
+  },
+  {
+    "id": "article-6",
+    "title": "Repeated Words",
+    "content": "JavaScript is great. JavaScript is powerful. JavaScript is amazing. JavaScript developers love JavaScript."
+  }
+]
+
