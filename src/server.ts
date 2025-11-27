@@ -6,6 +6,7 @@ import { Cache } from './cache/cacheInterface';
 import { JobQueue } from './jobQueue';
 import { v4 as uuidv4 } from 'uuid';
 import { metrics } from './metrics';
+import { jsonStore } from './store/jsonStore';
 import pino from 'pino';
 
 const logger = pino();
@@ -48,9 +49,18 @@ app.post('/articles', async (req, res) => {
 
 app.get('/articles/:jobId', async (req, res) => {
     const jobId = req.params.jobId;
-    const cached = await currentCache.get(`job:${jobId}`);
-    if (!cached) return res.status(404).json({ error: 'job not found' });
-    return res.json(cached);
+
+    let result = await currentCache.get(`job:${jobId}`);
+
+    if (!result) {
+        result = await jsonStore.getJobResult(jobId);
+    }
+
+    if (!result) {
+        return res.status(404).json({ error: 'job not found' });
+    }
+
+    return res.json(result);
 });
 
 app.get('/metrics', (req, res) => {
@@ -64,19 +74,17 @@ app.get('/metrics', (req, res) => {
 });
 
 
-// Helper function to migrate entries from old cache to new cache
 async function migrateCache(oldCache: Cache, newCache: Cache): Promise<number> {
     let migratedCount = 0;
 
-    // Check if old cache has getAllEntries method
     if (oldCache instanceof InMemoryCache) {
         const entries = oldCache.getAllEntries();
         for (const entry of entries) {
             try {
                 await newCache.set(entry.key, entry.value, entry.ttlMs);
                 migratedCount++;
-            } catch {
-                // Best-effort: continue on individual failures
+            } catch (err) {
+                console.error(`Failed to migrate entry ${entry.key}: ${String(err)}`);
             }
         }
     } else if (oldCache instanceof FileBasedCache) {
@@ -85,8 +93,8 @@ async function migrateCache(oldCache: Cache, newCache: Cache): Promise<number> {
             try {
                 await newCache.set(entry.key, entry.value, entry.ttlMs);
                 migratedCount++;
-            } catch {
-                // Best-effort: continue on individual failures
+            } catch (err) {
+                console.error(`Failed to migrate entry ${entry.key}: ${String(err)}`);
             }
         }
     }
@@ -108,25 +116,20 @@ app.post('/admin/cache/switch', async (req, res) => {
     try {
         const oldCache = currentCache;
 
-        // Create new cache instance
         const newCache: Cache = strategy === 'inmemory'
             ? new InMemoryCache()
             : new FileBasedCache();
 
         let migratedCount = 0;
 
-        // Handle migration mode
         if (mode === 'migrate') {
             migratedCount = await migrateCache(oldCache, newCache);
         } else {
-            // Invalidate mode: clear old cache
             await oldCache.clear();
         }
 
-        // Update current cache
         currentCache = newCache;
 
-        // Recreate queue with new cache
         queue = new JobQueue({ cache: currentCache, concurrency: 2 });
         queue.start();
 
@@ -146,4 +149,19 @@ app.post('/admin/cache/switch', async (req, res) => {
 
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
-app.listen(port, () => logger.info({ port }, 'ParseLab listening'));
+const server = app.listen(port, () => logger.info({ port }, 'ParseLab listening'));
+
+async function shutdown() {
+    logger.info('shutting down server');
+
+    server.close(() => {
+        logger.info('HTTP server closed');
+    });
+
+    await queue.shutdown();
+
+    process.exit(0);
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

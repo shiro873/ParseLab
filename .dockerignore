@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+npm-debug.log
+pnpm-debug.log
+yarn-error.log
+
+# Build output (will be built in container)
+dist
+
+# Test files
+tests
+*.test.ts
+*.test.js
+jest.config.js
+
+# Development files
+.git
+.gitignore
+.github
+.vscode
+.idea
+*.md
+!README.md
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Runtime data
+var
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.github
+
+# Documentation
+samples
+
+# TypeScript config (needed for build, but not in runtime)
+# tsconfig.json - keep this for build stage
+
+# Lock files (will be copied separately)
+package-lock.json
+pnpm-lock.yaml
+

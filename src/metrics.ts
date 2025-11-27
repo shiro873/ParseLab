@@ -3,8 +3,8 @@ export class Metrics {
     private failed = 0;
     private retried = 0;
     private activeWorkers = 0;
-    private averageProcessingTime = 0; // Exponential moving average in milliseconds
-    private readonly alpha = 0.1; // Smoothing factor for EMA
+    private averageProcessingTime = 0;
+    private readonly alpha = 0.1;
 
     incrementProcessed() {
         this.processed++;
@@ -24,10 +24,8 @@ export class Metrics {
 
     recordProcessingTime(ms: number) {
         if (this.averageProcessingTime === 0) {
-            // First measurement
             this.averageProcessingTime = ms;
         } else {
-            // Exponential moving average: new_avg = alpha * new_value + (1 - alpha) * old_avg
             this.averageProcessingTime = this.alpha * ms + (1 - this.alpha) * this.averageProcessingTime;
         }
     }
@@ -42,7 +40,6 @@ export class Metrics {
         };
     }
 
-    // Reset all metrics (useful for testing)
     reset() {
         this.processed = 0;
         this.failed = 0;
@@ -52,6 +49,5 @@ export class Metrics {
     }
 }
 
-// Singleton instance
 export const metrics = new Metrics();
 

@@ -23,7 +23,6 @@ export class FileBasedCache implements Cache {
     }
 
     private getFilePath(key: string): string {
-        // Sanitize key to be filesystem-safe
         const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
         return path.join(this.cacheDir, `${safeKey}.json`);
     }
@@ -31,20 +30,18 @@ export class FileBasedCache implements Cache {
     async set(key: string, value: any, ttlMs: number = 1000 * 60 * 5): Promise<void> {
         const expiresAt = Date.now() + ttlMs;
         const entry: FileCacheEntry = { key, value, expiresAt };
-        
+
         const filePath = this.getFilePath(key);
         const tmpPath = `${filePath}.tmp`;
-        
-        // Write to temporary file first
+
         fs.writeFileSync(tmpPath, JSON.stringify(entry), 'utf8');
-        
-        // Atomic rename
+
         fs.renameSync(tmpPath, filePath);
     }
 
     async get<T = any>(key: string): Promise<T | undefined> {
         const filePath = this.getFilePath(key);
-        
+
         if (!fs.existsSync(filePath)) {
             return undefined;
         }
@@ -52,22 +49,21 @@ export class FileBasedCache implements Cache {
         try {
             const content = fs.readFileSync(filePath, 'utf8');
             const entry: FileCacheEntry = JSON.parse(content);
-            
+
             // Check if expired
             if (Date.now() > entry.expiresAt) {
                 // Delete expired file
                 fs.unlinkSync(filePath);
                 return undefined;
             }
-            
+
             return entry.value as T;
         } catch (err) {
-            // If file is corrupted or doesn't exist, return undefined
             if (fs.existsSync(filePath)) {
                 try {
                     fs.unlinkSync(filePath);
-                } catch {
-                    // Ignore cleanup errors
+                } catch (err) {
+                    console.error({ filePath, error: String(err) }, 'failed to cleanup corrupted file');
                 }
             }
             return undefined;
@@ -84,14 +80,13 @@ export class FileBasedCache implements Cache {
             if (file.endsWith('.json') || file.endsWith('.tmp')) {
                 try {
                     fs.unlinkSync(path.join(this.cacheDir, file));
-                } catch {
-                    // Ignore errors during cleanup
+                } catch (err) {
+                    console.error({ file, error: String(err) }, 'failed to cleanup corrupted file');
                 }
             }
         }
     }
 
-    // Helper method for migration: get all entries with remaining TTL
     getAllEntries(): CacheEntry[] {
         if (!fs.existsSync(this.cacheDir)) {
             return [];
@@ -113,7 +108,6 @@ export class FileBasedCache implements Cache {
 
                 if (entry.expiresAt > now) {
                     const remainingTtl = entry.expiresAt - now;
-                    // Use the original key if stored, otherwise try to reconstruct from filename
                     const key = entry.key || this.reconstructKeyFromFilename(file);
                     entries.push({
                         key,
@@ -121,17 +115,15 @@ export class FileBasedCache implements Cache {
                         ttlMs: remainingTtl
                     });
                 }
-            } catch {
-                // Skip corrupted files
+            } catch (err) {
+                console.error({ filePath, error: String(err) }, 'failed to read corrupted file');
             }
         }
 
         return entries;
     }
 
-    // Best-effort key reconstruction from filename (for backward compatibility)
     private reconstructKeyFromFilename(filename: string): string {
-        // Remove .json extension and try to reverse sanitization
         return filename.replace(/\.json$/, '').replace(/_/g, ':');
     }
 }

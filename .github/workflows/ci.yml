@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Setup pnpm (if needed)
+      if: hashFiles('pnpm-lock.yaml') != ''
+      uses: pnpm/action-setup@v2
+      with:
+        version: latest
+
+    - name: Install dependencies
+      run: |
+        if [ -f pnpm-lock.yaml ]; then
+          npm install -g pnpm
+          pnpm install --frozen-lockfile
+        else
+          npm ci
+        fi
+
+    - name: Run linter (TypeScript check)
+      run: npx tsc --noEmit
+
+    - name: Build
+      run: npm run build
+
+    - name: Run tests
+      run: npm test
+
+    - name: Check build output
+      run: |
+        test -f dist/server.js || (echo "Build output missing" && exit 1)
+        test -d dist || (echo "dist directory missing" && exit 1)
+

@@ -2,6 +2,8 @@
 
 A text analysis service that processes articles and provides detailed analysis including word counts, sentence counts, paragraph counts, and word frequency analysis.
 
+> 📖 **Design Notes:** See [docs/THOUGHTS.md](docs/THOUGHTS.md) for architecture decisions, trade-offs, and operational runbook.
+
 ## Features
 
 - **Text Analysis**: Analyze articles to extract word counts, sentence counts, paragraph counts, longest word, top N words, unique words, and most frequent word
@@ -157,6 +159,108 @@ npm run dev
 
 The server will start on port 3000 (or the port specified in `PORT` environment variable).
 
+### Worker Threads (Optional)
+
+For CPU-bound analysis tasks, you can enable worker threads to offload processing to separate threads. This is useful for handling high concurrency or CPU-intensive workloads.
+
+**To enable worker threads:**
+
+Set the `WORKER_POOL_SIZE` environment variable to the number of worker threads you want to use:
+
+```bash
+WORKER_POOL_SIZE=4 npm run dev
+```
+
+- Default: Worker threads are **disabled** (analysis runs in-process)
+- Recommended: Set to the number of CPU cores (e.g., `4` for a 4-core machine)
+- The worker pool automatically manages job queuing and concurrency
+
+**Example:**
+```bash
+# Enable worker pool with 4 workers
+WORKER_POOL_SIZE=4 PORT=3000 npm run dev
+
+# Disable worker pool (default - in-process)
+PORT=3000 npm run dev
+```
+
+**Benefits:**
+- Offloads CPU-intensive analysis to separate threads
+- Prevents blocking the main event loop
+- Better performance under high concurrency
+- Automatic job queuing when all workers are busy
+
+**Note:** Worker threads require the code to be compiled. Run `npm run build` before using worker threads in production.
+
+## Docker
+
+ParseLab can be run in a Docker container for easy deployment and isolation.
+
+### Building the Docker Image
+
+```bash
+docker build -t parselab:latest .
+```
+
+### Running the Container
+
+```bash
+# Run with default port (3000)
+docker run -p 3000:3000 parselab:latest
+
+# Run with custom port
+docker run -p 8080:3000 -e PORT=3000 parselab:latest
+
+# Run with worker threads enabled
+docker run -p 3000:3000 -e WORKER_POOL_SIZE=4 parselab:latest
+
+# Run with persistent storage (for job results and cache)
+docker run -p 3000:3000 \
+  -v $(pwd)/var:/app/var \
+  parselab:latest
+```
+
+### Docker Compose Example
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+
+services:
+  parselab:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - WORKER_POOL_SIZE=4
+      - NODE_ENV=production
+    volumes:
+      - ./var:/app/var
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/metrics', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+```
+
+Then run:
+
+```bash
+docker-compose up -d
+```
+
+### Environment Variables
+
+The following environment variables can be set when running the container:
+
+- `PORT`: Server port (default: `3000`)
+- `WORKER_POOL_SIZE`: Number of worker threads (default: disabled)
+- `JOB_STORE_DIR`: Directory for job result storage (default: `var/store/jobs`)
+- `NODE_ENV`: Node environment (default: `production`)
+
 ## Project Structure
 
 ```
@@ -166,8 +270,11 @@ ParseLab/
 │   │   ├── cacheInterface.ts    # Cache interface definition
 │   │   ├── inMemoryCache.ts     # In-memory cache implementation
 │   │   └── fileBasedCache.ts    # File-based cache implementation
+│   ├── worker/
+│   │   ├── pool.ts              # Worker pool management
+│   │   └── worker.ts             # Worker thread implementation
 │   ├── utils/
-│   │   └── analyze.ts           # Text analysis functions
+│   │   └── analyze.ts            # Text analysis functions
 │   ├── jobQueue.ts              # Job queue implementation
 │   └── server.ts                 # Express server and API endpoints
 ├── tests/
@@ -182,6 +289,10 @@ ParseLab/
 └── var/
     └── cache/                   # File-based cache storage (gitignored)
 ```
+
+## Documentation
+
+- **[Design Notes & Runbook](docs/THOUGHTS.md)** - Architecture decisions, trade-offs, scaling recommendations, and operational procedures
 
 ## License
 
