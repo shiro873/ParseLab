@@ -2,7 +2,8 @@
 
 A text analysis service that processes articles and provides detailed analysis including word counts, sentence counts, paragraph counts, and word frequency analysis.
 
-> 📖 **Design Notes:** See [docs/THOUGHTS.md](docs/THOUGHTS.md) for architecture decisions, trade-offs, and operational runbook.
+> 📖 **Design Notes:** See [docs/THOUGHTS.md](docs/THOUGHTS.md) for architecture decisions, trade-offs, and operational runbook.  
+> 📚 **API Documentation:** See [docs/API_README.md](docs/API_README.md) for OpenAPI spec, Postman collection, and API usage examples.
 
 ## Features
 
@@ -292,6 +293,7 @@ ParseLab/
 
 ## Documentation
 
+- **[API Documentation](docs/API_README.md)** - OpenAPI specification, Postman collection, and API usage examples
 - **[Design Notes & Runbook](docs/THOUGHTS.md)** - Architecture decisions, trade-offs, scaling recommendations, and operational procedures
 
 ## License

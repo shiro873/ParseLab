@@ -1,0 +1,529 @@
+openapi: 3.0.3
+info:
+  title: ParseLab API
+  description: |
+    A text analysis service that processes articles and provides detailed analysis including 
+    word counts, sentence counts, paragraph counts, and word frequency analysis.
+    
+    ## Features
+    - Asynchronous job processing with status tracking
+    - Flexible caching strategies (in-memory or file-based)
+    - Runtime metrics and monitoring
+    - Durable job result storage
+    
+    ## Security
+    Currently, all endpoints are unauthenticated. In production, it is **strongly recommended** to:
+    - Add authentication (API keys, OAuth, etc.) to all endpoints
+    - Protect admin endpoints (`/admin/*`) with additional authorization
+    - Use HTTPS/TLS for all communications
+    - Implement rate limiting to prevent abuse
+  version: 0.1.0
+  contact:
+    name: ParseLab Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server (example)
+    variables:
+      baseUrl:
+        default: https://api.example.com
+
+tags:
+  - name: Articles
+    description: Article analysis job management
+  - name: Metrics
+    description: Runtime metrics and monitoring
+  - name: Admin
+    description: Administrative operations (should be protected in production)
+
+paths:
+  /articles:
+    post:
+      tags:
+        - Articles
+      summary: Submit articles for analysis
+      description: |
+        Enqueues one or more articles for asynchronous text analysis. Returns job IDs that can be 
+        used to poll for results.
+        
+        **Processing Flow:**
+        1. Articles are validated and job IDs are generated
+        2. Jobs are enqueued for asynchronous processing
+        3. Results are cached (TTL: 1 hour) and persisted to durable storage
+        4. Use GET /articles/{jobId} to retrieve results
+      operationId: submitArticles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArticlesRequest'
+            examples:
+              singleArticle:
+                summary: Single article
+                value:
+                  articles:
+                    - id: "article-1"
+                      title: "Sample Article"
+                      content: "Hello world. This is a test article with multiple sentences. It demonstrates the analysis capabilities."
+              multipleArticles:
+                summary: Multiple articles
+                value:
+                  articles:
+                    - id: "article-1"
+                      title: "First Article"
+                      content: "First paragraph here.\n\nSecond paragraph continues."
+                    - id: "article-2"
+                      title: "Second Article"
+                      content: "Another article with different content."
+      responses:
+        '202':
+          description: Articles accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticlesResponse'
+              example:
+                jobIds:
+                  - "550e8400-e29b-41d4-a716-446655440000"
+                  - "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "articles must be a non-empty array"
+
+  /articles/{jobId}:
+    get:
+      tags:
+        - Articles
+      summary: Get job status and analysis result
+      description: |
+        Retrieves the status and analysis result for a job. Results are first checked in cache, 
+        then in durable storage if cache misses.
+        
+        **Job Statuses:**
+        - `queued`: Job is waiting to be processed
+        - `processing`: Job is currently being analyzed
+        - `completed`: Job completed successfully (includes analysis result)
+        - `failed`: Job failed after exhausting retries (includes error message)
+      operationId: getJobStatus
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: The job ID returned from POST /articles
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Job status and result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatusResponse'
+              examples:
+                queued:
+                  summary: Job queued (not yet processed)
+                  value:
+                    jobId: "550e8400-e29b-41d4-a716-446655440000"
+                    status: "queued"
+                processing:
+                  summary: Job being processed
+                  value:
+                    jobId: "550e8400-e29b-41d4-a716-446655440000"
+                    status: "processing"
+                completed:
+                  summary: Job completed with analysis
+                  value:
+                    jobId: "550e8400-e29b-41d4-a716-446655440000"
+                    status: "completed"
+                    analysis:
+                      wordCount: 15
+                      sentenceCount: 3
+                      paragraphCount: 2
+                      longestWord: "demonstrates"
+                      topNWords:
+                        - word: "the"
+                          count: 3
+                        - word: "article"
+                          count: 2
+                        - word: "is"
+                          count: 2
+                      uniqueWords:
+                        - "a"
+                        - "analysis"
+                        - "article"
+                        - "capabilities"
+                        - "demonstrates"
+                        - "hello"
+                        - "is"
+                        - "it"
+                        - "multiple"
+                        - "sentences"
+                        - "test"
+                        - "the"
+                        - "this"
+                        - "with"
+                        - "world"
+                      mostFrequentWord:
+                        word: "the"
+                        count: 3
+                failed:
+                  summary: Job failed
+                  value:
+                    jobId: "550e8400-e29b-41d4-a716-446655440000"
+                    status: "failed"
+                    error: "Cache error after 4 attempts"
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "job not found"
+
+  /metrics:
+    get:
+      tags:
+        - Metrics
+      summary: Get runtime metrics
+      description: |
+        Returns current runtime metrics including job counters, queue status, and performance metrics.
+        Useful for monitoring and debugging.
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Current metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+              example:
+                processed: 42
+                failed: 2
+                retried: 5
+                activeWorkers: 1
+                averageProcessingTimeMs: 15.75
+                queueLength: 3
+
+  /admin/cache/switch:
+    post:
+      tags:
+        - Admin
+      summary: Switch cache strategy
+      description: |
+        Switches the cache strategy at runtime. Can migrate existing cache entries or invalidate them.
+        
+        **⚠️ Security Warning:** This endpoint should be protected with authentication/authorization in production.
+        
+        **Cache Strategies:**
+        - `inmemory`: Fast, in-memory cache (lost on restart)
+        - `file`: Persistent file-based cache (survives restarts)
+        
+        **Modes:**
+        - `invalidate`: Clear old cache and start fresh
+        - `migrate`: Copy entries from old cache to new cache (preserves TTL)
+      operationId: switchCache
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CacheSwitchRequest'
+            examples:
+              invalidate:
+                summary: Switch to file cache (invalidate old)
+                value:
+                  strategy: "file"
+                  mode: "invalidate"
+              migrate:
+                summary: Switch to in-memory cache (migrate entries)
+                value:
+                  strategy: "inmemory"
+                  mode: "migrate"
+      responses:
+        '200':
+          description: Cache switched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheSwitchResponse'
+              examples:
+                invalidate:
+                  summary: Invalidate mode
+                  value:
+                    success: true
+                    strategy: "file"
+                    mode: "invalidate"
+                    message: "Cache switched to file (old cache invalidated)"
+                migrate:
+                  summary: Migrate mode
+                  value:
+                    success: true
+                    strategy: "inmemory"
+                    mode: "migrate"
+                    migratedCount: 42
+                    message: "Cache switched to inmemory with 42 entries migrated"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidStrategy:
+                  value:
+                    error: 'strategy must be "inmemory" or "file"'
+                invalidMode:
+                  value:
+                    error: 'mode must be "invalidate" or "migrate"'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Failed to switch cache: Disk full"
+
+components:
+  schemas:
+    Article:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        id:
+          type: string
+          description: Optional article identifier (auto-generated if not provided)
+          example: "article-1"
+        title:
+          type: string
+          description: Article title
+          example: "Sample Article"
+        content:
+          type: string
+          description: Article content to analyze
+          example: "Hello world. This is a test article."
+
+    ArticlesRequest:
+      type: object
+      required:
+        - articles
+      properties:
+        articles:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Article'
+          description: Array of articles to analyze
+
+    ArticlesResponse:
+      type: object
+      required:
+        - jobIds
+      properties:
+        jobIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Array of job IDs for tracking analysis progress
+
+    JobStatusResponse:
+      type: object
+      required:
+        - jobId
+        - status
+      properties:
+        jobId:
+          type: string
+          format: uuid
+          description: Unique job identifier
+        status:
+          type: string
+          enum: [queued, processing, completed, failed]
+          description: Current job status
+        analysis:
+          $ref: '#/components/schemas/AnalysisResult'
+          description: Analysis result (only present when status is 'completed')
+        error:
+          type: string
+          description: Error message (only present when status is 'failed')
+
+    AnalysisResult:
+      type: object
+      required:
+        - wordCount
+        - sentenceCount
+        - paragraphCount
+        - longestWord
+        - topNWords
+        - uniqueWords
+        - mostFrequentWord
+      properties:
+        wordCount:
+          type: integer
+          minimum: 0
+          description: Total number of words in the article
+          example: 15
+        sentenceCount:
+          type: integer
+          minimum: 0
+          description: Total number of sentences
+          example: 3
+        paragraphCount:
+          type: integer
+          minimum: 1
+          description: Total number of paragraphs (minimum 1)
+          example: 2
+        longestWord:
+          type: string
+          description: The longest word found in the article
+          example: "demonstrates"
+        topNWords:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/WordFrequency'
+          description: Top 5 most frequent words with their counts
+        uniqueWords:
+          type: array
+          items:
+            type: string
+          description: Alphabetically sorted list of unique words (lowercased)
+          example: ["a", "article", "capabilities", "demonstrates", "hello"]
+        mostFrequentWord:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/WordFrequency'
+            - type: "null"
+          description: The most frequent word and its count (null if no words found)
+
+    WordFrequency:
+      type: object
+      required:
+        - word
+        - count
+      properties:
+        word:
+          type: string
+          description: The word (lowercased)
+          example: "the"
+        count:
+          type: integer
+          minimum: 1
+          description: Frequency count
+          example: 3
+
+    MetricsResponse:
+      type: object
+      required:
+        - processed
+        - failed
+        - retried
+        - activeWorkers
+        - averageProcessingTimeMs
+        - queueLength
+      properties:
+        processed:
+          type: integer
+          minimum: 0
+          description: Total number of jobs successfully processed
+          example: 42
+        failed:
+          type: integer
+          minimum: 0
+          description: Total number of jobs that failed after exhausting retries
+          example: 2
+        retried:
+          type: integer
+          minimum: 0
+          description: Total number of retry attempts across all jobs
+          example: 5
+        activeWorkers:
+          type: integer
+          minimum: 0
+          description: Current number of active worker threads processing jobs
+          example: 1
+        averageProcessingTimeMs:
+          type: number
+          format: float
+          minimum: 0
+          description: Exponential moving average of job processing time in milliseconds
+          example: 15.75
+        queueLength:
+          type: integer
+          minimum: 0
+          description: Current number of jobs waiting in the queue
+          example: 3
+
+    CacheSwitchRequest:
+      type: object
+      required:
+        - strategy
+      properties:
+        strategy:
+          type: string
+          enum: [inmemory, file]
+          description: Target cache strategy
+          example: "file"
+        mode:
+          type: string
+          enum: [invalidate, migrate]
+          default: invalidate
+          description: How to handle existing cache entries
+          example: "migrate"
+
+    CacheSwitchResponse:
+      type: object
+      required:
+        - success
+        - strategy
+        - mode
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Whether the operation succeeded
+          example: true
+        strategy:
+          type: string
+          enum: [inmemory, file]
+          description: The cache strategy that was switched to
+        mode:
+          type: string
+          enum: [invalidate, migrate]
+          description: The mode that was used
+        migratedCount:
+          type: integer
+          minimum: 0
+          description: Number of entries migrated (only present when mode is 'migrate')
+          example: 42
+        message:
+          type: string
+          description: Human-readable status message
+          example: "Cache switched to file with 42 entries migrated"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "job not found"
+

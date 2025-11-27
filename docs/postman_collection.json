@@ -1,0 +1,640 @@
+{
+	"info": {
+		"_postman_id": "parselab-api-collection",
+		"name": "ParseLab API",
+		"description": "Complete API collection for ParseLab text analysis service. Includes examples for all endpoints and common workflows.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Articles",
+			"item": [
+				{
+					"name": "Submit Articles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Extract job IDs from response and save to environment",
+									"if (pm.response.code === 202) {",
+									"    const response = pm.response.json();",
+									"    if (response.jobIds && response.jobIds.length > 0) {",
+									"        pm.environment.set('jobId', response.jobIds[0]);",
+									"        console.log('Saved jobId:', response.jobIds[0]);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"articles\": [\n    {\n      \"id\": \"article-1\",\n      \"title\": \"Sample Article\",\n      \"content\": \"Hello world. This is a test article with multiple sentences. It demonstrates the analysis capabilities.\"\n    },\n    {\n      \"id\": \"article-2\",\n      \"title\": \"Second Article\",\n      \"content\": \"First paragraph here.\\n\\nSecond paragraph continues with more content.\"\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/articles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"articles"
+							]
+						},
+						"description": "Submit one or more articles for analysis. Returns job IDs that can be used to poll for results."
+					},
+					"response": [
+						{
+							"name": "Success - Multiple Articles",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"articles\": [\n    {\n      \"id\": \"article-1\",\n      \"title\": \"Sample Article\",\n      \"content\": \"Hello world. This is a test.\"\n    }\n  ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/articles",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"articles"
+									]
+								}
+							},
+							"status": "Accepted",
+							"code": 202,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"jobIds\": [\n        \"550e8400-e29b-41d4-a716-446655440000\",\n        \"6ba7b810-9dad-11d1-80b4-00c04fd430c8\"\n    ]\n}"
+						},
+						{
+							"name": "Error - Empty Array",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"articles\": []\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/articles",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"articles"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"articles must be a non-empty array\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Job Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/articles/{{jobId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"articles",
+								"{{jobId}}"
+							]
+						},
+						"description": "Retrieve the status and analysis result for a job. Results are checked in cache first, then in durable storage."
+					},
+					"response": [
+						{
+							"name": "Completed Job",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/articles/550e8400-e29b-41d4-a716-446655440000",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"articles",
+										"550e8400-e29b-41d4-a716-446655440000"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"jobId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"status\": \"completed\",\n    \"analysis\": {\n        \"wordCount\": 15,\n        \"sentenceCount\": 3,\n        \"paragraphCount\": 2,\n        \"longestWord\": \"demonstrates\",\n        \"topNWords\": [\n            {\n                \"word\": \"the\",\n                \"count\": 3\n            },\n            {\n                \"word\": \"article\",\n                \"count\": 2\n            }\n        ],\n        \"uniqueWords\": [\n            \"a\",\n            \"article\",\n            \"capabilities\",\n            \"demonstrates\",\n            \"hello\"\n        ],\n        \"mostFrequentWord\": {\n            \"word\": \"the\",\n            \"count\": 3\n        }\n    }\n}"
+						},
+						{
+							"name": "Queued Job",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/articles/550e8400-e29b-41d4-a716-446655440000",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"articles",
+										"550e8400-e29b-41d4-a716-446655440000"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"jobId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"status\": \"queued\"\n}"
+						},
+						{
+							"name": "Job Not Found",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/articles/invalid-job-id",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"articles",
+										"invalid-job-id"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"job not found\"\n}"
+						}
+					]
+				}
+			],
+			"description": "Endpoints for submitting articles and retrieving analysis results"
+		},
+		{
+			"name": "Metrics",
+			"item": [
+				{
+					"name": "Get Metrics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/metrics",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"metrics"
+							]
+						},
+						"description": "Get current runtime metrics including job counters, queue status, and performance metrics."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/metrics",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"metrics"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"processed\": 42,\n    \"failed\": 2,\n    \"retried\": 5,\n    \"activeWorkers\": 1,\n    \"averageProcessingTimeMs\": 15.75,\n    \"queueLength\": 3\n}"
+						}
+					]
+				}
+			],
+			"description": "Runtime metrics and monitoring endpoints"
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "Switch Cache Strategy",
+					"item": [
+						{
+							"name": "Switch to File Cache (Invalidate)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"strategy\": \"file\",\n  \"mode\": \"invalidate\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/admin/cache/switch",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"admin",
+										"cache",
+										"switch"
+									]
+								},
+								"description": "Switch to file-based cache and invalidate (clear) the old cache."
+							},
+							"response": [
+								{
+									"name": "Success",
+									"originalRequest": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"strategy\": \"file\",\n  \"mode\": \"invalidate\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/admin/cache/switch",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"admin",
+												"cache",
+												"switch"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"success\": true,\n    \"strategy\": \"file\",\n    \"mode\": \"invalidate\",\n    \"message\": \"Cache switched to file (old cache invalidated)\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Switch to In-Memory Cache (Migrate)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"strategy\": \"inmemory\",\n  \"mode\": \"migrate\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/admin/cache/switch",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"admin",
+										"cache",
+										"switch"
+									]
+								},
+								"description": "Switch to in-memory cache and migrate existing entries from the old cache."
+							},
+							"response": [
+								{
+									"name": "Success",
+									"originalRequest": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"strategy\": \"inmemory\",\n  \"mode\": \"migrate\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/admin/cache/switch",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"admin",
+												"cache",
+												"switch"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"success\": true,\n    \"strategy\": \"inmemory\",\n    \"mode\": \"migrate\",\n    \"migratedCount\": 42,\n    \"message\": \"Cache switched to inmemory with 42 entries migrated\"\n}"
+								}
+							]
+						}
+					],
+					"description": "Switch cache strategy at runtime. ⚠️ Should be protected with authentication in production."
+				}
+			],
+			"description": "Administrative endpoints (should be protected in production)"
+		},
+		{
+			"name": "Workflows",
+			"item": [
+				{
+					"name": "Enqueue & Poll",
+					"item": [
+						{
+							"name": "1. Submit Article",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Save jobId from response",
+											"if (pm.response.code === 202) {",
+											"    const response = pm.response.json();",
+											"    if (response.jobIds && response.jobIds.length > 0) {",
+											"        pm.environment.set('jobId', response.jobIds[0]);",
+											"        console.log('Job submitted:', response.jobIds[0]);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"articles\": [\n    {\n      \"id\": \"workflow-article\",\n      \"title\": \"Workflow Test Article\",\n      \"content\": \"This is a test article for the enqueue and poll workflow. It contains multiple sentences and paragraphs.\\n\\nThis is the second paragraph with more content.\"\n    }\n  ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/articles",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"articles"
+									]
+								},
+								"description": "Step 1: Submit an article for analysis"
+							}
+						},
+						{
+							"name": "2. Poll for Results",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Check if job is completed",
+											"if (pm.response.code === 200) {",
+											"    const response = pm.response.json();",
+											"    if (response.status === 'completed') {",
+											"        console.log('Job completed! Analysis:', response.analysis);",
+											"    } else if (response.status === 'processing' || response.status === 'queued') {",
+											"        console.log('Job still processing. Status:', response.status);",
+											"        console.log('Poll again in a few seconds...');",
+											"    } else if (response.status === 'failed') {",
+											"        console.log('Job failed:', response.error);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/articles/{{jobId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"articles",
+										"{{jobId}}"
+									]
+								},
+								"description": "Step 2: Poll for job status. Repeat until status is 'completed' or 'failed'."
+							}
+						}
+					],
+					"description": "Complete workflow: Submit an article and poll for results until completion."
+				},
+				{
+					"name": "Cache Switch Demo",
+					"item": [
+						{
+							"name": "1. Check Current Metrics",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/metrics",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"metrics"
+									]
+								},
+								"description": "Check metrics before cache switch"
+							}
+						},
+						{
+							"name": "2. Switch to File Cache",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"strategy\": \"file\",\n  \"mode\": \"migrate\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/admin/cache/switch",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"admin",
+										"cache",
+										"switch"
+									]
+								},
+								"description": "Switch to file-based cache with migration"
+							}
+						},
+						{
+							"name": "3. Verify Metrics After Switch",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/metrics",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"metrics"
+									]
+								},
+								"description": "Verify metrics are still accessible after cache switch"
+							}
+						}
+					],
+					"description": "Demonstrate cache switching workflow"
+				}
+			],
+			"description": "Common API workflows and examples"
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "jobId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+
